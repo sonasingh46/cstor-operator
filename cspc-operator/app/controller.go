@@ -18,13 +18,13 @@ package app
 
 import (
 	"fmt"
-	apis "github.com/sonasingh46/apis/pkg/apis/openebs.io/v1"
+	apis "github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io/v1"
 	types "github.com/sonasingh46/apis/pkg/apis/types"
 	clientset "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/scheme"
 	informers "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions"
-	listers "github.com/sonasingh46/apis/pkg/client/generated/listers/openebs.io/v1"
-	v1interface "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/openebs.io/v1"
+	listers "github.com/sonasingh46/apis/pkg/client/generated/listers/cstor.openebs.io/v1"
+	v1interface "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor.openebs.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -162,7 +162,7 @@ func (c *Controller) addCSPC(obj interface{}) {
 		return
 	}
 	klog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
-	//c.enqueueCSPC(cspc)
+	c.enqueueCSPC(cspc)
 }
 
 // updateSpc is the update event handler for cspc.
@@ -177,7 +177,7 @@ func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	//c.enqueueCSPC(cspc)
+	c.enqueueCSPC(cspc)
 }
 
 // deleteSpc is the delete event handler for cspc.
@@ -201,9 +201,9 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 		return
 	}
 	klog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
-	//c.enqueueCSPC(cspc)
+	c.enqueueCSPC(cspc)
 }
 
 func GetVersionedCSPCInterface(cspcInformerFactory informers.SharedInformerFactory) v1interface.Interface{
-	return cspcInformerFactory.Openebs().V1()
+	return cspcInformerFactory.Cstor().V1()
 }

@@ -44,3 +44,16 @@ func (c *Controller) syncHandler(key string) error {
 	fmt.Println("name,ns:",ns,name)
 	return err
 }
+
+// enqueueCSPC takes a CSPC resource and converts it into a namespace/name
+// string which is then put onto the work queue. This method should *not* be
+// passed resources of any type other than CSPC.
+func (c *Controller) enqueueCSPC(cspc interface{}) {
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(cspc); err != nil {
+		runtime.HandleError(err)
+		return
+	}
+	c.workqueue.Add(key)
+}
