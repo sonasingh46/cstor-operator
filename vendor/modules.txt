@@ -36,24 +36,24 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
-# github.com/sonasingh46/apis v0.0.0-20200204192307-39be547ef5a8
-github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io
-github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io/v1
-github.com/sonasingh46/apis/pkg/apis/ndm
-github.com/sonasingh46/apis/pkg/apis/ndm/v1alpha1
+# github.com/sonasingh46/apis v0.0.0-20200206160826-44bb3e5d493f
+github.com/sonasingh46/apis/pkg/apis/cstor
+github.com/sonasingh46/apis/pkg/apis/cstor/v1
+github.com/sonasingh46/apis/pkg/apis/openebs.io
+github.com/sonasingh46/apis/pkg/apis/openebs.io/v1alpha1
 github.com/sonasingh46/apis/pkg/apis/types
 github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned
 github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/scheme
-github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/cstor.openebs.io/v1
-github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/ndm/v1alpha1
+github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/cstor/v1
+github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1
 github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions
-github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor.openebs.io
-github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor.openebs.io/v1
+github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor
+github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor/v1
 github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/internalinterfaces
-github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/ndm
-github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/ndm/v1alpha1
-github.com/sonasingh46/apis/pkg/client/generated/listers/cstor.openebs.io/v1
-github.com/sonasingh46/apis/pkg/client/generated/listers/ndm/v1alpha1
+github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/openebs.io
+github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/openebs.io/v1alpha1
+github.com/sonasingh46/apis/pkg/client/generated/listers/cstor/v1
+github.com/sonasingh46/apis/pkg/client/generated/listers/openebs.io/v1alpha1
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586

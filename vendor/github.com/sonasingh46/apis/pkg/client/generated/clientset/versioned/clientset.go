@@ -21,8 +21,8 @@ package versioned
 import (
 	"fmt"
 
-	cstorv1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/cstor.openebs.io/v1"
-	ndmv1alpha1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/ndm/v1alpha1"
+	cstorv1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/cstor/v1"
+	openebsv1alpha1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -31,15 +31,15 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	CstorV1() cstorv1.CstorV1Interface
-	NdmV1alpha1() ndmv1alpha1.NdmV1alpha1Interface
+	OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	cstorV1     *cstorv1.CstorV1Client
-	ndmV1alpha1 *ndmv1alpha1.NdmV1alpha1Client
+	cstorV1         *cstorv1.CstorV1Client
+	openebsV1alpha1 *openebsv1alpha1.OpenebsV1alpha1Client
 }
 
 // CstorV1 retrieves the CstorV1Client
@@ -47,9 +47,9 @@ func (c *Clientset) CstorV1() cstorv1.CstorV1Interface {
 	return c.cstorV1
 }
 
-// NdmV1alpha1 retrieves the NdmV1alpha1Client
-func (c *Clientset) NdmV1alpha1() ndmv1alpha1.NdmV1alpha1Interface {
-	return c.ndmV1alpha1
+// OpenebsV1alpha1 retrieves the OpenebsV1alpha1Client
+func (c *Clientset) OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface {
+	return c.openebsV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -77,7 +77,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs.ndmV1alpha1, err = ndmv1alpha1.NewForConfig(&configShallowCopy)
+	cs.openebsV1alpha1, err = openebsv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.cstorV1 = cstorv1.NewForConfigOrDie(c)
-	cs.ndmV1alpha1 = ndmv1alpha1.NewForConfigOrDie(c)
+	cs.openebsV1alpha1 = openebsv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -104,7 +104,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.cstorV1 = cstorv1.New(c)
-	cs.ndmV1alpha1 = ndmv1alpha1.New(c)
+	cs.openebsV1alpha1 = openebsv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

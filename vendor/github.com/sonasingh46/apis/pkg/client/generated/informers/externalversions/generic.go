@@ -21,8 +21,8 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io/v1"
-	v1alpha1 "github.com/sonasingh46/apis/pkg/apis/ndm/v1alpha1"
+	v1 "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	v1alpha1 "github.com/sonasingh46/apis/pkg/apis/openebs.io/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -59,11 +59,11 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v1.SchemeGroupVersion.WithResource("cstorpoolinstances"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cstor().V1().CStorPoolInstances().Informer()}, nil
 
-		// Group=ndm, Version=v1alpha1
+		// Group=openebs.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("blockdevices"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Ndm().V1alpha1().BlockDevices().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().BlockDevices().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("blockdeviceclaims"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Ndm().V1alpha1().BlockDeviceClaims().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().BlockDeviceClaims().Informer()}, nil
 
 	}
 

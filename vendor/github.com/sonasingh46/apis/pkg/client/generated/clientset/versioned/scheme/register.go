@@ -19,8 +19,8 @@ limitations under the License.
 package scheme
 
 import (
-	cstorv1 "github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io/v1"
-	ndmv1alpha1 "github.com/sonasingh46/apis/pkg/apis/ndm/v1alpha1"
+	cstorv1 "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	openebsv1alpha1 "github.com/sonasingh46/apis/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +33,7 @@ var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
 	cstorv1.AddToScheme,
-	ndmv1alpha1.AddToScheme,
+	openebsv1alpha1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

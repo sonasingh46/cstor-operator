@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package types
+// +groupName=openebs.io
 
-const (
-	// OpenEBSDisableReconcileKey is the label key decides to reconcile or not
-	OpenEBSDisableReconcileKey = "reconcile.openebs.io/disable"
-)
+// Package openebsio is the openebsio API group
+package openebsio
+
+const GroupName = "openebs.io"

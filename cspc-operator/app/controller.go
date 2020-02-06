@@ -18,13 +18,13 @@ package app
 
 import (
 	"fmt"
-	apis "github.com/sonasingh46/apis/pkg/apis/cstor.openebs.io/v1"
+	apis "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	types "github.com/sonasingh46/apis/pkg/apis/types"
 	clientset "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/scheme"
 	informers "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions"
-	listers "github.com/sonasingh46/apis/pkg/client/generated/listers/cstor.openebs.io/v1"
-	v1interface "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor.openebs.io/v1"
+	listers "github.com/sonasingh46/apis/pkg/client/generated/listers/cstor/v1"
+	v1interface "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/cstor/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
