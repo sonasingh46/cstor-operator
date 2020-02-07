@@ -16,5 +16,10 @@ limitations under the License.
 
 // Package v1 is the v1alpha1 version of the API.
 // +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=github.com/sonasingh46/apis/pkg/internal/apis/cstor
+// +k8s:openapi-gen=true
 // +groupName=cstor.openebs.io
 package v1
+
+
+// ToDo: Is the conversion-gen tag required here?

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	v1 "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
-	scheme "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/scheme"
+	scheme "github.com/sonasingh46/apis/pkg/client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

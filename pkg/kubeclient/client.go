@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
-	clientset "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned"
+	clientset "github.com/sonasingh46/apis/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

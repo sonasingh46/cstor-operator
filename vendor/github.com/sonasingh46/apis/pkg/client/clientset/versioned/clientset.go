@@ -21,8 +21,8 @@ package versioned
 import (
 	"fmt"
 
-	cstorv1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/cstor/v1"
-	openebsv1alpha1 "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
+	cstorv1 "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/cstor/v1"
+	openebsv1alpha1 "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/openebs.io/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

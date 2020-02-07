@@ -19,7 +19,7 @@ limitations under the License.
 package v1
 
 import (
-	internalinterfaces "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/sonasingh46/apis/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

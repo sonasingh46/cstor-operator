@@ -22,9 +22,9 @@ import (
 	time "time"
 
 	openebsiov1alpha1 "github.com/sonasingh46/apis/pkg/apis/openebs.io/v1alpha1"
-	versioned "github.com/sonasingh46/apis/pkg/client/generated/clientset/versioned"
-	internalinterfaces "github.com/sonasingh46/apis/pkg/client/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/sonasingh46/apis/pkg/client/generated/listers/openebs.io/v1alpha1"
+	versioned "github.com/sonasingh46/apis/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/sonasingh46/apis/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/sonasingh46/apis/pkg/client/listers/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

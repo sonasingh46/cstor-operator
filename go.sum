@@ -108,14 +108,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uYEyJGbgTkfkS4+E/PavXkNJcbFIpEtjt2B0KDQ5+9M=
-github.com/sonasingh46/apis v0.0.0-20200204161628-3fd460a16239 h1:7B+Kjs3WTZ+hrkNcJpK/Vrbk6Fwx86ha9g6cYoBSjL8=
-github.com/sonasingh46/apis v0.0.0-20200204161628-3fd460a16239/go.mod h1:5VUW5tc0LDCNUXA1dKBwxRfFnxcZs+BycBdVCHm5jRw=
-github.com/sonasingh46/apis v0.0.0-20200204163719-dbdc50003433 h1:Mq3JEEuv8qyDuVfBkknShl7AYbLOH40htUtzpPFs23g=
-github.com/sonasingh46/apis v0.0.0-20200204163719-dbdc50003433/go.mod h1:5VUW5tc0LDCNUXA1dKBwxRfFnxcZs+BycBdVCHm5jRw=
-github.com/sonasingh46/apis v0.0.0-20200204192307-39be547ef5a8 h1:olZKD6FUw3or4EWij561LZsaG9OmdBiM0S5VpyLgLBo=
-github.com/sonasingh46/apis v0.0.0-20200204192307-39be547ef5a8/go.mod h1:5VUW5tc0LDCNUXA1dKBwxRfFnxcZs+BycBdVCHm5jRw=
-github.com/sonasingh46/apis v0.0.0-20200206160826-44bb3e5d493f h1:mUgKgP3ARpp17jMwbu8TIYZ4i4I56uSWlx2SzEy6fxo=
-github.com/sonasingh46/apis v0.0.0-20200206160826-44bb3e5d493f/go.mod h1:5VUW5tc0LDCNUXA1dKBwxRfFnxcZs+BycBdVCHm5jRw=
+github.com/sonasingh46/apis v0.0.0-20200207094915-b6307782db9a h1:Ud59WCvDJBhEAVofHUjnfwhaOPusUx2uBqLz+7n7k6w=
+github.com/sonasingh46/apis v0.0.0-20200207094915-b6307782db9a/go.mod h1:1Q1H7f2sDh+PyiPgi77PUv0fPhm6qB++BfIz/xFLTpY=
 github.com/spf13/afero v1.2.2/go.mod h1:9ZxEEn6pIJ8Rxe320qSDBk6AsU0r9pR7Q4OcevTdifk=
 github.com/spf13/pflag v0.0.0-20170130214245-9ff6c6923cff/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
