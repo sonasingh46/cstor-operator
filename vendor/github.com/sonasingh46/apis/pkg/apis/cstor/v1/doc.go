@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1 is the v1alpha1 version of the API.
+// Package v1 is the v1 version of the API.
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/sonasingh46/apis/pkg/internal/apis/cstor
+// +k8s:conversion-gen=github.com/sonasingh46/apis/pkg/intapis/apis/cstor
 // +k8s:openapi-gen=true
 // +groupName=cstor.openebs.io
 package v1

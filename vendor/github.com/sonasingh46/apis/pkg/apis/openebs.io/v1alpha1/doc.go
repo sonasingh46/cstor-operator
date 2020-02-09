@@ -16,6 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 is the v1alpha1 version of the API.
 // +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=github.com/sonasingh46/apis/pkg/intapis/apis/openebs.io
 // +k8s:openapi-gen=true
 // +groupName=openebs.io
 package v1alpha1
