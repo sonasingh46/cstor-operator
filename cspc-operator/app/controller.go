@@ -18,7 +18,7 @@ package app
 
 import (
 	"fmt"
-	apis "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	types "github.com/sonasingh46/apis/pkg/apis/types"
 	clientset "github.com/sonasingh46/apis/pkg/client/clientset/versioned"
 	openebsScheme "github.com/sonasingh46/apis/pkg/client/clientset/versioned/scheme"
@@ -26,6 +26,8 @@ import (
 	listers "github.com/sonasingh46/apis/pkg/client/listers/cstor/v1"
 	v1interface "github.com/sonasingh46/apis/pkg/client/informers/externalversions/cstor/v1"
 	corev1 "k8s.io/api/core/v1"
+	cstorstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/cstor/v1"
+	openebsstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -78,7 +80,7 @@ type Controller struct {
 	syncHandler func(cspcKey string) error
 
 	// used for unit testing
-	enqueueCSPC func(cspc *apis.CStorPoolCluster)
+	enqueueCSPC func(cspc *cstor.CStorPoolCluster)
 }
 
 // ControllerBuilder is the builder object for controller.
@@ -190,7 +192,7 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 
 // addSpc is the add event handler for cspc
 func (c *Controller) addCSPC(obj interface{}) {
-	cspc, ok := obj.(*apis.CStorPoolCluster)
+	cspc, ok := obj.(*cstor.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", obj))
 		return
@@ -206,7 +208,7 @@ func (c *Controller) addCSPC(obj interface{}) {
 
 // updateSpc is the update event handler for cspc.
 func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
-	cspc, ok := newCSPC.(*apis.CStorPoolCluster)
+	cspc, ok := newCSPC.(*cstor.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newCSPC))
 		return
@@ -221,14 +223,14 @@ func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
 
 // deleteSpc is the delete event handler for cspc.
 func (c *Controller) deleteCSPC(obj interface{}) {
-	cspc, ok := obj.(*apis.CStorPoolCluster)
+	cspc, ok := obj.(*cstor.CStorPoolCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		cspc, ok = tombstone.Obj.(*apis.CStorPoolCluster)
+		cspc, ok = tombstone.Obj.(*cstor.CStorPoolCluster)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorpoolcluster %#v", obj))
 			return
@@ -245,7 +247,7 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 
 // addSpc is the add event handler for cspc
 func (c *Controller) addCSPI(obj interface{}) {
-	cspi, ok := obj.(*apis.CStorPoolInstance)
+	cspi, ok := obj.(*cstor.CStorPoolInstance)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspi object %#v", obj))
 		return
@@ -256,12 +258,12 @@ func (c *Controller) addCSPI(obj interface{}) {
 		return
 	}
 	klog.V(4).Infof("Queuing CSPI %s for add event", cspi.Name)
-	c.enqueueCSPC(GetCSPCForCSPI(cspi))
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
 }
 
 // updateSpc is the update event handler for cspc.
 func (c *Controller) updateCSPI(oldCSPI, newCSPI interface{}) {
-	cspi, ok := newCSPI.(*apis.CStorPoolInstance)
+	cspi, ok := newCSPI.(*cstor.CStorPoolInstance)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspi object %#v", newCSPI))
 		return
@@ -271,19 +273,19 @@ func (c *Controller) updateCSPI(oldCSPI, newCSPI interface{}) {
 		c.recorder.Event(cspi, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	c.enqueueCSPC(GetCSPCForCSPI(cspi))
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
 }
 
 // deleteSpc is the delete event handler for cspc.
 func (c *Controller) deleteCSPI(obj interface{}) {
-	cspi, ok := obj.(*apis.CStorPoolInstance)
+	cspi, ok := obj.(*cstor.CStorPoolInstance)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Couldn't get cspi object from tombstone %#v", obj))
 			return
 		}
-		cspi, ok = tombstone.Obj.(*apis.CStorPoolInstance)
+		cspi, ok = tombstone.Obj.(*cstor.CStorPoolInstance)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorpoolinstance %#v", obj))
 			return
@@ -295,7 +297,7 @@ func (c *Controller) deleteCSPI(obj interface{}) {
 		return
 	}
 	klog.V(4).Infof("Deleting cstorpoolinstance %s", cspi.Name)
-	c.enqueueCSPC(GetCSPCForCSPI(cspi))
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
 }
 
 func GetVersionedCSPCInterface(cspcInformerFactory informers.SharedInformerFactory) v1interface.Interface{
@@ -307,6 +309,14 @@ func GetStoredCSPIVersionInterface(cspiInformerFactory informers.SharedInformerF
 }
 
 // ToDO: Fix the function.
-func GetCSPCForCSPI(cspc *apis.CStorPoolInstance)*apis.CStorPoolCluster  {
+func GetCSPCForCSPI(cspc *cstor.CStorPoolInstance)*cstor.CStorPoolCluster  {
 	return nil
+}
+
+func (c *Controller)GetStoredCStorVersionClient() cstorstoredversion.CstorV1Interface {
+	return c.clientset.CstorV1()
+}
+
+func (c *Controller)GetStoredOpenebsVersionClient() openebsstoredversion.OpenebsV1alpha1Interface {
+	return c.clientset.OpenebsV1alpha1()
 }

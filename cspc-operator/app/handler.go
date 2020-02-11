@@ -23,10 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	//apis "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
-	//internalapiscstor "github.com/sonasingh46/apis/pkg/intapis/apis/cstor"
-	//internalapiscstorv1 "github.com/sonasingh46/apis/pkg/intapis/apis/cstor/v1"
-
 	"k8s.io/klog"
 	"time"
 )

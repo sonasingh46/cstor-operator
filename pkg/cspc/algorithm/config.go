@@ -21,14 +21,14 @@ import (
 	clientset "github.com/sonasingh46/apis/pkg/client/clientset/versioned"
 	openebsstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/openebs.io/v1alpha1"
 	cstorstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/cstor/v1"
-	intapis "github.com/sonasingh46/apis/pkg/intapis/apis/cstor"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 // Config embeds CSPC object and namespace where openebs is installed.
 type Config struct {
 	// CSPC is the CStorPoolCluster object.
-	CSPC *intapis.CStorPoolCluster
+	CSPC *cstor.CStorPoolCluster
 
 	// Namespace is the namespace where openebs is installed.
 	Namespace string
@@ -44,10 +44,10 @@ type Config struct {
 	kubeclientset kubernetes.Interface
 
 	// GetSpec returns the CSPI spec. Useful in unit testing.
-	GetSpec func() (*intapis.CStorPoolInstance, error)
+	GetSpec func() (*cstor.CStorPoolInstance, error)
 
 	// Select selects a node for CSPI. Useful in unit testing.
-	Select func() (*intapis.PoolSpec, string, error)
+	Select func() (*cstor.PoolSpec, string, error)
 }
 
 // Builder embeds the Config object.
@@ -61,7 +61,7 @@ type Builder struct {
 func NewBuilder() *Builder {
 	return &Builder{
 		ConfigObj: &Config{
-			CSPC:         &intapis.CStorPoolCluster{},
+			CSPC:         &cstor.CStorPoolCluster{},
 			Namespace:    "",
 			VisitedNodes: make(map[string]bool),
 		},
@@ -98,7 +98,7 @@ func (b *Builder) WithKubeClient(kc kubernetes.Interface) *Builder {
 }
 
 // WithCSPC sets the CSPC field of the config object with the provided value.
-func (b *Builder) WithCSPC(cspc *intapis.CStorPoolCluster) *Builder {
+func (b *Builder) WithCSPC(cspc *cstor.CStorPoolCluster) *Builder {
 	if cspc == nil {
 		b.errs = append(b.errs, errors.New("failed to build algorithm config object: nil cspc object"))
 		return b

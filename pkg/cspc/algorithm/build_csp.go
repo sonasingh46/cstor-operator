@@ -19,14 +19,21 @@ package algorithm
 import (
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	"github.com/sonasingh46/apis/pkg/apis/types"
-	intapis "github.com/sonasingh46/apis/pkg/intapis/apis/cstor"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+)
+
+const (
+	// StoragePoolKindCSPC holds the value of CStorPoolCluster
+	StoragePoolKindCSPC = "CStorPoolCluster"
+	ApiVersion= "cstor.openebs.io/v1"
 )
 
 // GetCSPSpec returns a CSPI spec that should be created and claims all the
 // block device present in the CSPI spec
-func (ac *Config) GetCSPSpec() (*intapis.CStorPoolInstance, error) {
+func (ac *Config) GetCSPSpec() (*cstor.CStorPoolInstance, error) {
 	poolSpec, nodeName, err := ac.SelectNode()
 	if err != nil || nodeName == "" {
 		return nil, errors.Wrap(err, "failed to select a node")
@@ -47,16 +54,17 @@ func (ac *Config) GetCSPSpec() (*intapis.CStorPoolInstance, error) {
 		poolSpec.PoolConfig.PriorityClassName = ac.CSPC.Spec.DefaultPriorityClassName
 	}
 
-	csplabels := ac.buildLabelsForCSPI(nodeName)
-	cspiObj:= intapis.NewCStorPoolInstance().
+	cspiLabels := ac.buildLabelsForCSPI(nodeName)
+
+	cspiObj := cstor.NewCStorPoolInstance().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
 		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
 		WithPoolConfig(poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.DataRaidGroups).
-		WithCSPCOwnerReference(*ac.CSPC).
-		WithLabelsNew(csplabels).
+		WithCSPCOwnerReference(GetCSPCOwnerReference(ac.CSPC)).
+		WithLabelsNew(cspiLabels).
 		WithFinalizer(types.CSPCFinalizer).
 		WithNewVersion(version.GetVersion()).
 		WithDependentsUpgraded()
@@ -64,7 +72,7 @@ func (ac *Config) GetCSPSpec() (*intapis.CStorPoolInstance, error) {
 		return nil, errors.Wrapf(err, "failed to build CSPI object for node selector {%v}", poolSpec.NodeSelector)
 	}
 
-	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+	err = ac.ClaimBDsForNode(GetBDListForNode(*poolSpec))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
 	}
@@ -72,7 +80,6 @@ func (ac *Config) GetCSPSpec() (*intapis.CStorPoolInstance, error) {
 }
 
 // buildLabelsForCSPI builds labels for CSPI
-// TODO : Improve following using builders
 func (ac *Config) buildLabelsForCSPI(nodeName string) map[string]string {
 	labels := make(map[string]string)
 	labels[types.HostNameLabelKey] = nodeName
@@ -80,4 +87,17 @@ func (ac *Config) buildLabelsForCSPI(nodeName string) map[string]string {
 	labels[string(types.OpenEBSVersionLabelKey)] = version.GetVersion()
 	labels[string(types.CASTypeLabelKey)] = types.CasTypeCStor
 	return labels
+}
+
+func GetCSPCOwnerReference(cspc *cstor.CStorPoolCluster) metav1.OwnerReference {
+	trueVal := true
+	reference := metav1.OwnerReference{
+		APIVersion:         ApiVersion,
+		Kind:               StoragePoolKindCSPC,
+		UID:                cspc.ObjectMeta.UID,
+		Name:               cspc.ObjectMeta.Name,
+		BlockOwnerDeletion: &trueVal,
+		Controller:         &trueVal,
+	}
+	return reference
 }

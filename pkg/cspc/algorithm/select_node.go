@@ -21,9 +21,7 @@ import (
 	"github.com/pkg/errors"
 	openebsio "github.com/sonasingh46/apis/pkg/apis/openebs.io/v1alpha1"
 	"github.com/sonasingh46/apis/pkg/apis/types"
-	intapis "github.com/sonasingh46/apis/pkg/intapis/apis/cstor"
-	intopenebsapis "github.com/sonasingh46/apis/pkg/intapis/apis/openebs.io"
-	intopenebsapisv1alpha1 "github.com/sonasingh46/apis/pkg/intapis/apis/openebs.io/v1alpha1"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +29,7 @@ import (
 )
 
 // SelectNode returns a node where pool should be created.
-func (ac *Config) SelectNode() (*intapis.PoolSpec, string, error) {
+func (ac *Config) SelectNode() (*cstor.PoolSpec, string, error) {
 	usedNodes, err := ac.GetUsedNode()
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "could not get used nodes list for pool creation")
@@ -82,8 +80,6 @@ func getLabelSelectorString(selector map[string]string) string {
 }
 
 // GetUsedNode returns a map of node for which pool has already been created.
-// Note : Filter function is not used from node builder package as it needs
-// CSP builder package which cam cause import loops.
 func (ac *Config) GetUsedNode() (map[string]bool, error) {
 	usedNode := make(map[string]bool)
 	cspList, err := ac.
@@ -105,7 +101,7 @@ func (ac *Config) GetUsedNode() (map[string]bool, error) {
 }
 
 // GetBDListForNode returns a list of BD from the pool spec.
-func (ac *Config) GetBDListForNode(pool *intapis.PoolSpec) []string {
+func GetBDListForNode(pool cstor.PoolSpec) []string {
 	var BDList []string
 	for _, group := range pool.DataRaidGroups {
 		for _, bd := range group.BlockDevices {
@@ -157,26 +153,24 @@ func (ac *Config) ClaimBD(bdObj openebsio.BlockDevice) error {
 	if err!=nil{
 		return err
 	}
-	newBDCObj:=intopenebsapis.NewBlockDeviceClaim().
+
+	newBDCObj:=openebsio.NewBlockDeviceClaim().
 		WithName("bdc-cstor-" + string(bdObj.UID)).
 		WithNamespace(ac.Namespace).
-		WithLabels(map[string]string{string(types.CStorPoolClusterLabelKey): ac.CSPC.Name}).
+		WithLabels(map[string]string{types.CStorPoolClusterLabelKey: ac.CSPC.Name}).
 		WithBlockDeviceName(bdObj.Name).
 		WithHostName(bdObj.Labels[types.HostNameLabelKey]).
+		WithCSPCOwnerReference(GetCSPCOwnerReference(ac.CSPC)).
 		WithCapacity(resourceList).
-		WithCSPCOwnerReference(ac.CSPC).
 		WithFinalizer(types.CSPCFinalizer)
 	if err != nil {
 		return errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdObj.Name)
 	}
-	bdcApiObject:=&openebsio.BlockDeviceClaim{}
-
-	err=intopenebsapisv1alpha1.Convert_openebsio_BlockDeviceClaim_To_v1alpha1_BlockDeviceClaim(newBDCObj,bdcApiObject,nil)
 
 	if err!=nil{
 		return errors.Errorf("Failed to convert internal bdc type to external v1alpha1:{%s}",err.Error())
 	}
-	_, err = ac.clientset.OpenebsV1alpha1().BlockDeviceClaims(ac.Namespace).Create(bdcApiObject)
+	_, err = ac.clientset.OpenebsV1alpha1().BlockDeviceClaims(ac.Namespace).Create(newBDCObj)
 	if k8serror.IsAlreadyExists(err) {
 		klog.Infof("BDC for BD {%s} already created", bdObj.Name)
 		return nil

@@ -146,6 +146,8 @@ github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGV
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/openebs/maya v0.0.0-20200207115516-8785d0601756 h1:xYGtPgQvwcdwiMOmKKB590og8eG6sTqTaZdFZA2jtQ0=
 github.com/openebs/maya v0.0.0-20200207115516-8785d0601756/go.mod h1:QQY9cOHKQwZ73qbv6O//UYUBLNV2S0MRDIfG7t5KOCk=
+github.com/openebs/maya v0.0.0-20200211084127-dd6152021192 h1:WqAgEtPa/owsF89MIKliYbgwn9nvF6JE+giJBDzzAqo=
+github.com/openebs/maya v0.0.0-20200211084127-dd6152021192/go.mod h1:QQY9cOHKQwZ73qbv6O//UYUBLNV2S0MRDIfG7t5KOCk=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -175,6 +177,14 @@ github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPx
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sonasingh46/apis v0.0.0-20200210102020-138abdc1357c h1:DJcj75BIxKvnPauFriAIhY9IJEnLriLsiU8EQ8IMnuU=
 github.com/sonasingh46/apis v0.0.0-20200210102020-138abdc1357c/go.mod h1:1Q1H7f2sDh+PyiPgi77PUv0fPhm6qB++BfIz/xFLTpY=
+github.com/sonasingh46/apis v0.0.0-20200210204127-9ffc2e3570ed h1:1QLueX8PFRg+4JqZZ5jrNbWBanMVexGPYEuxgl32DP0=
+github.com/sonasingh46/apis v0.0.0-20200210204127-9ffc2e3570ed/go.mod h1:1Q1H7f2sDh+PyiPgi77PUv0fPhm6qB++BfIz/xFLTpY=
+github.com/sonasingh46/apis v0.0.0-20200211094644-055695d5411f h1:eQZEY5Ygp8oRtQxiPAv0kwjCPhpTkfbc3a0jOYEra2E=
+github.com/sonasingh46/apis v0.0.0-20200211094644-055695d5411f/go.mod h1:GFih65sj7OfhbZBNhCve0CK5rdXvu2KMbaApI5HMHuc=
+github.com/sonasingh46/apis v0.0.0-20200211101024-b962fc16f02a h1:Aze6kkxdz+zkkuEPgpysWTQ0r6zzp4q/uMn9ESC0faw=
+github.com/sonasingh46/apis v0.0.0-20200211101024-b962fc16f02a/go.mod h1:GFih65sj7OfhbZBNhCve0CK5rdXvu2KMbaApI5HMHuc=
+github.com/sonasingh46/apis v0.0.0-20200211102121-428de135e219 h1:/cN7Hj/aUAJnFXng4iCX8bavvsnaNSGizQTlIwUuQog=
+github.com/sonasingh46/apis v0.0.0-20200211102121-428de135e219/go.mod h1:GFih65sj7OfhbZBNhCve0CK5rdXvu2KMbaApI5HMHuc=
 github.com/spf13/afero v1.2.2/go.mod h1:9ZxEEn6pIJ8Rxe320qSDBk6AsU0r9pR7Q4OcevTdifk=
 github.com/spf13/pflag v0.0.0-20170130214245-9ff6c6923cff/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=

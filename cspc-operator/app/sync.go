@@ -1,16 +1,30 @@
+/*
+Copyright 2020 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package app
 
 import (
 	"fmt"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
-	apis "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
-	cstorintapis "github.com/sonasingh46/apis/pkg/intapis/apis/cstor"
-	cstorintapisv1 "github.com/sonasingh46/apis/pkg/intapis/apis/cstor/v1"
-	"github.com/sonasingh46/cstor-operator/pkg/cspc/algorithm"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	"github.com/sonasingh46/apis/pkg/apis/types"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 )
 
@@ -21,42 +35,57 @@ const (
 	OpenEBSVersionKey   = "openebs.io/version"
 )
 
-func (c *Controller) sync(cspc *apis.CStorPoolCluster, cspiList *apis.CStorPoolInstanceList) error {
-	// cleaning up CSPI resources in case of removing poolSpec from CSPC
-	// or manual CSPI deletion
+func (c *Controller) sync(cspc *cstor.CStorPoolCluster, cspiList *cstor.CStorPoolInstanceList) error {
+
 	fmt.Println("[DEBUG]: DO NOT FORGET TO REBUILD IF YOUR ARE DEBUUGGING------------------------------->")
 
+	// If CSPC is deleted -- delete all the associated CSPI resources.
+	// Cleaning up CSPI resources in case of removing poolSpec from CSPC
+	// or manual CSPI deletion
 	if cspc.DeletionTimestamp.IsZero() {
-
+		err := c.cleanupCSPIResources(cspc)
+		if err != nil {
+			message := fmt.Sprintf("Could not sync CSPC: {%s}", err.Error())
+			c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Cleanup", message)
+			klog.Errorf("Could not sync CSPC {%s}: %s", cspc.Name, err.Error())
+			return nil
+		}
 	}
-	cspcObj := cspc
-	//cspcObj, err := c.populateVersion(cspcObj)
-	//if err != nil {
-	//	klog.Errorf("failed to add versionDetails to CSPC %s:%s", cspcObj.Name, err.Error())
-	//	return nil
-	//}
 
-	// If CSPC is deleted -- handle the deletion.
-	if !cspcObj.DeletionTimestamp.IsZero() {
+	cspc, err := c.populateVersion(cspc)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to CSPC %s:%s", cspc.Name, err.Error())
+		return nil
+	}
 
+	// If deletion timestamp is not zero on CSPC, this means CSPC is deleted
+	// and all the resources associated with cspc should be deleted.
+	if !cspc.DeletionTimestamp.IsZero() {
+		err = c.handleCSPCDeletion(cspc)
+		if err != nil {
+			klog.Errorf("Failed to sync CSPC for deletion:%s", err.Error())
+		}
+		return nil
 	}
 
 	// Add finalizer on CSPC
-
-	// Convert CSPC external API type to internal type
-	// This conversion is done here so that the rest of the code for CSPC related stuff
-	// is loosely coupled from the external versioned CSPC type.
-	cspcInternal := &cstorintapis.CStorPoolCluster{}
-	cstorintapisv1.Convert_v1_CStorPoolCluster_To_cstor_CStorPoolCluster(cspc, cspcInternal, nil)
+	if !cspc.HasFinalizer(types.CSPCFinalizer){
+		cspc.WithFinalizer(types.CSPCFinalizer)
+		cspc,err=c.GetStoredCStorVersionClient().CStorPoolClusters(cspc.Namespace).Update(cspc)
+		if err != nil {
+			klog.Errorf("Failed to add finalizer on CSPC %s:%s", cspc.Name, err.Error())
+			return nil
+		}
+	}
 
 	// Create pools if required.
 	if len(cspiList.Items) < len(cspc.Spec.Pools) {
-		return c.ScaleUp(cspcInternal, len(cspcInternal.Spec.Pools)-len(cspiList.Items))
+		return c.ScaleUp(cspc, len(cspc.Spec.Pools)-len(cspiList.Items))
 	}
 
 	if len(cspiList.Items) > len(cspc.Spec.Pools) {
 		// Scale Down and return
-		return c.ScaleDown()
+		return c.ScaleDown(cspc)
 	}
 
 	// Create pool deployment for the CSPIs
@@ -64,61 +93,90 @@ func (c *Controller) sync(cspc *apis.CStorPoolCluster, cspiList *apis.CStorPoolI
 	// Handle Pool operations
 	return nil
 }
+// handleCSPCDeletion handles deletion of a CSPC resource by deleting
+// the associated CSPI resource(s) to it, removing the CSPC finalizer
+// on BDC(s) used and then removing the CSPC finalizer on CSPC resource
+// itself.
 
-// ScaleUp creates as many cstor pool on a node as pendingPoolCount.
-func (c *Controller) ScaleUp(cspc *cstorintapis.CStorPoolCluster, pendingPoolCount int) error {
-	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
-		err := c.CreateCSPI(cspc)
+// It is necessary that CSPC resource has the CSPC finalizer on it in order to
+// execute the handler.
+func (c *Controller) handleCSPCDeletion(cspc *cstor.CStorPoolCluster) error {
+	err := c.deleteAssociatedCSPI(cspc)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to handle CSPC deletion")
+	}
+
+	if cspc.HasFinalizer(types.CSPCFinalizer) {
+		err := c.removeCSPCFinalizer(cspc)
 		if err != nil {
-			message := fmt.Sprintf("Pool provisioning failed for %d/%d ", poolCount, pendingPoolCount)
-			c.Record(cspc,corev1.EventTypeWarning,"Create",message)
-			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name))
-		} else {
-			message := fmt.Sprintf("Pool Provisioned %d/%d ", poolCount, pendingPoolCount)
-			c.Record(cspc,corev1.EventTypeNormal,"Create",message)
-			klog.Infof("Pool provisioned successfully %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
+			return errors.Wrapf(err, "failed to handle CSPC %s deletion", cspc.Name)
 		}
 	}
+
 	return nil
 }
 
-// CreateCSPI creates CSPI
-func (c *Controller) CreateCSPI(cspc *cstorintapis.CStorPoolCluster) error {
-	ac, err := algorithm.NewBuilder().
-		WithCSPC(cspc).
-		WithNameSpace(cspc.Namespace).
-		WithKubeClient(c.kubeclientset).
-		WithOpenEBSClient(c.clientset).
-		Build()
-	if err != nil {
-		return err
+// deleteAssociatedCSPI deletes the CSPI resource(s) belonging to the given CSPC resource.
+// If no CSPI resource exists for the CSPC, then a levelled info log is logged and function
+// returns.
+func (c *Controller) deleteAssociatedCSPI(cspc *cstor.CStorPoolCluster) error {
+	err := c.GetStoredCStorVersionClient().CStorPoolInstances(cspc.Namespace).DeleteCollection(
+		&metav1.DeleteOptions{},
+		metav1.ListOptions{
+			LabelSelector: string(types.CStorPoolClusterLabelKey) + "=" + cspc.Name,
+		},
+	)
+
+	if k8serror.IsNotFound(err) {
+		klog.V(2).Infof("Associated CSPI(s) of CSPC %s is already deleted:%s", cspc.Name, err.Error())
+		return nil
 	}
-	cspi, err := ac.GetCSPSpec()
+
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to delete associated CSPI(s):%s", err.Error())
 	}
-	cspiApiObj := &apis.CStorPoolInstance{}
-	cstorintapisv1.Convert_cstor_CStorPoolInstance_To_v1_CStorPoolInstance(cspi, cspiApiObj, nil)
-	c.clientset.CstorV1().CStorPoolInstances(cspc.Namespace).Create(cspiApiObj)
+	klog.Infof("Associated CSPI(s) of CSPC %s deleted successfully ", cspc.Name)
 	return nil
 }
 
-// CreateStoragePool creates the required resource to provision a cStor pool
-func (c *Controller) CreateCSPIDeployment() error {
-	return nil
-}
+// removeSPCFinalizer removes CSPC finalizers on associated
+// BDC and CSPI resources in correct order and CSPC object itself.
+func (c *Controller) removeCSPCFinalizer(cspc *cstor.CStorPoolCluster) error {
 
-func (c *Controller) ScaleDown() error {
+	// clean up all cspi related resources for given cspc
+	err := c.cleanupCSPIResources(cspc)
+	if err != nil {
+		klog.Errorf("Failed to cleanup CSPC api object %s: %s", cspc.Name, err.Error())
+		return nil
+	}
+
+	cspList, err := c.GetStoredCStorVersionClient().CStorPoolInstances(cspc.Namespace).List(metav1.ListOptions{
+		LabelSelector: string(types.CStorPoolClusterLabelKey) + "=" + cspc.Name,
+	})
+
+	if len(cspList.Items) > 0 {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources as "+
+			"CSPI(s) still exists for CSPC")
+
+	}
+
+	cspc.RemoveFinalizer(types.CSPCFinalizer)
+	_, err = c.GetStoredCStorVersionClient().CStorPoolClusters(cspc.Namespace).Update(cspc)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on cspc resource")
+	}
 	return nil
 }
 
 // populateVersion assigns VersionDetails for old cspc object and newly created
 // cspc
-func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+func (c *Controller) populateVersion(cspc *cstor.CStorPoolCluster) (*cstor.CStorPoolCluster, error) {
 	if cspc.VersionDetails.Status.Current == "" {
 		var err error
 		var v string
-		var obj *apis.CStorPoolCluster
+		var obj *cstor.CStorPoolCluster
 		v, err = c.EstimateCSPCVersion(cspc)
 		if err != nil {
 			return nil, err
@@ -127,18 +185,18 @@ func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPo
 		// For newly created spc Desired field will also be empty.
 		cspc.VersionDetails.Desired = v
 		cspc.VersionDetails.Status.DependentsUpgraded = true
-		obj, err = c.clientset.CstorV1().
-			CStorPoolClusters("openebs"). // ToDO: Fix Hardcoding
+		obj, err = c.GetStoredCStorVersionClient().
+			CStorPoolClusters(cspc.Namespace).
 			Update(cspc)
 
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
-				"failed to update spc %s while adding versiondetails",
+				"failed to update cspc %s while adding versiondetails",
 				cspc.Name,
 			)
 		}
-		klog.Infof("Version %s added on spc %s", v, cspc.Name)
+		klog.Infof("Version %s added on cspc %s", v, cspc.Name)
 		return obj, nil
 	}
 	return cspc, nil
@@ -146,9 +204,9 @@ func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPo
 
 // EstimateCSPCVersion returns the cspi version if any cspi is present for the cspc or
 // returns the maya version as the new cspi created will be of maya version
-func (c *Controller) EstimateCSPCVersion(cspc *apis.CStorPoolCluster) (string, error) {
+func (c *Controller) EstimateCSPCVersion(cspc *cstor.CStorPoolCluster) (string, error) {
 	cspiList, err := c.clientset.CstorV1().
-		CStorPoolInstances("openebs"). // ToDO: Fix Hardcoding
+		CStorPoolInstances(cspc.Namespace).
 		List(
 			metav1.ListOptions{
 				LabelSelector: string(CStorPoolClusterCPK) + "=" + cspc.Name,
@@ -164,10 +222,4 @@ func (c *Controller) EstimateCSPCVersion(cspc *apis.CStorPoolCluster) (string, e
 		return version.Current(), nil
 	}
 	return cspiList.Items[0].Labels[string(OpenEBSVersionKey)], nil
-}
-
-func (c *Controller) Record(cspc *cstorintapis.CStorPoolCluster, eventype, reason, message string) {
-	cspcAPI := &apis.CStorPoolCluster{}
-	cstorintapisv1.Convert_cstor_CStorPoolCluster_To_v1_CStorPoolCluster(cspc, cspcAPI, nil)
-	c.recorder.Event(cspcAPI, eventype, reason, message)
 }
