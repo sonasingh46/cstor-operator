@@ -16,7 +16,7 @@ limitations under the License.
 
 // +groupName=openebs.io
 
-// Package openebsio is the openebsio API group
-package openebsio
+// Package openebs is the openebs.io API group
+package openebs
 
 const GroupName = "openebs.io"

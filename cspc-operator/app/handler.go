@@ -18,8 +18,11 @@ package app
 
 import (
 	"fmt"
+	"github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 	"time"
 )
@@ -27,7 +30,7 @@ import (
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the cspcPoolUpdated resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key string) error {
+func (c *Controller) syncCSPC(key string) error {
 	startTime := time.Now()
 	klog.V(4).Infof("Started syncing cstorpoolcluster %q (%v)", key, startTime)
 	defer func() {
@@ -40,15 +43,25 @@ func (c *Controller) syncHandler(key string) error {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
-	fmt.Println("Insisde Sync Handler")
-	fmt.Println("name,ns:",ns,name)
+	// Get the cspc resource with this namespace/name
+	cspc, err := c.cspcLister.CStorPoolClusters(ns).Get(name)
+	if k8serror.IsNotFound(err) {
+		runtime.HandleError(fmt.Errorf("cspc '%s' has been deleted", key))
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Deep-copy otherwise we are mutating our cache.
+	// TODO: Deep-copy only when needed.
+	cspcGot := cspc.DeepCopy()
+	cspiList,_:=c.GetCSPIListForCSPC(cspcGot)
+	err = c.sync(cspcGot,cspiList)
 	return err
 }
 
-// enqueueCSPC takes a CSPC resource and converts it into a namespace/name
-// string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than CSPC.
-func (c *Controller) enqueueCSPC(cspc interface{}) {
+func (c *Controller) enqueue(cspc *v1.CStorPoolCluster) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(cspc); err != nil {
@@ -56,4 +69,8 @@ func (c *Controller) enqueueCSPC(cspc interface{}) {
 		return
 	}
 	c.workqueue.Add(key)
+}
+
+func (c *Controller)GetCSPIListForCSPC(cspc *v1.CStorPoolCluster) (*v1.CStorPoolInstanceList,error) {
+	return c.clientset.CstorV1().CStorPoolInstances(cspc.Namespace).List(v12.ListOptions{})
 }

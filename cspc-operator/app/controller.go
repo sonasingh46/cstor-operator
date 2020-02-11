@@ -18,7 +18,7 @@ package app
 
 import (
 	"fmt"
-	apis "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
+	cstor "github.com/sonasingh46/apis/pkg/apis/cstor/v1"
 	types "github.com/sonasingh46/apis/pkg/apis/types"
 	clientset "github.com/sonasingh46/apis/pkg/client/clientset/versioned"
 	openebsScheme "github.com/sonasingh46/apis/pkg/client/clientset/versioned/scheme"
@@ -26,6 +26,8 @@ import (
 	listers "github.com/sonasingh46/apis/pkg/client/listers/cstor/v1"
 	v1interface "github.com/sonasingh46/apis/pkg/client/informers/externalversions/cstor/v1"
 	corev1 "k8s.io/api/core/v1"
+	cstorstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/cstor/v1"
+	openebsstoredversion "github.com/sonasingh46/apis/pkg/client/clientset/versioned/typed/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -49,10 +51,19 @@ type Controller struct {
 	// ndmclientset is a ndm custom resource package generated for custom API group.
 	//ndmclientset ndmclientset.Interface
 
+	// cspcLister can list/get cspc from the shared informer's store
 	cspcLister listers.CStorPoolClusterLister
 
-	// cspcSynced is used for caches sync to get populated
+	// rsLister can list/get replica sets from the shared informer's  store
+	cspiLister listers.CStorPoolInstanceLister
+
+	// cspcSynced returns true if the cspc store has been synced at least once.
+	// Added as a member to the struct to allow injection for testing.
 	cspcSynced cache.InformerSynced
+
+	// cspiSynced returns true if the cspc store has been synced at least once.
+	// Added as a member to the struct to allow injection for testing.
+	cspiSynced cache.InformerSynced
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -64,6 +75,12 @@ type Controller struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
+
+	// To allow injection of syncCSPC for testing.
+	syncHandler func(cspcKey string) error
+
+	// used for unit testing
+	enqueueCSPC func(cspc *cstor.CStorPoolCluster)
 }
 
 // ControllerBuilder is the builder object for controller.
@@ -90,12 +107,6 @@ func (cb *ControllerBuilder) WithOpenEBSClient(cs clientset.Interface) *Controll
 	return cb
 }
 
-//// withNDMClient fills ndm client to controller object.
-//func (cb *ControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *ControllerBuilder {
-//	cb.Controller.ndmclientset = ndmcs
-//	return cb
-//}
-
 // withSpcLister fills cspc lister to controller object.
 func (cb *ControllerBuilder) WithCSPCLister(sl informers.SharedInformerFactory) *ControllerBuilder {
 	cspcInformer := GetVersionedCSPCInterface(sl).CStorPoolClusters()
@@ -103,10 +114,24 @@ func (cb *ControllerBuilder) WithCSPCLister(sl informers.SharedInformerFactory) 
 	return cb
 }
 
+// WithCSPILister fills cspi lister to controller object.
+func (cb *ControllerBuilder) WithCSPILister(sl informers.SharedInformerFactory) *ControllerBuilder {
+	cspiInformer := GetStoredCSPIVersionInterface(sl).CStorPoolInstances()
+	cb.Controller.cspiLister = cspiInformer.Lister()
+	return cb
+}
+
 // withcspcSynced adds object sync information in cache to controller object.
 func (cb *ControllerBuilder) WithCSPCSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
 	cspcInformer := GetVersionedCSPCInterface(sl).CStorPoolClusters()
 	cb.Controller.cspcSynced = cspcInformer.Informer().HasSynced
+	return cb
+}
+
+// WithCSPISynced adds object sync information in cache to controller object.
+func (cb *ControllerBuilder) WithCSPISynced(sl informers.SharedInformerFactory) *ControllerBuilder {
+	cspiInformer := GetStoredCSPIVersionInterface(sl).CStorPoolInstances()
+	cb.Controller.cspcSynced = cspiInformer.Informer().HasSynced
 	return cb
 }
 
@@ -128,20 +153,36 @@ func (cb *ControllerBuilder) WithRecorder(ks kubernetes.Interface) *ControllerBu
 }
 
 // withEventHandler adds event handlers controller object.
-func (cb *ControllerBuilder) WithEventHandler(cspcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
-	cspcInformer := GetVersionedCSPCInterface(cspcInformerFactory).CStorPoolClusters()
-	// Set up an event handler for when CSPC resources change
+func (cb *ControllerBuilder) WithEventHandler(InformerFactory informers.SharedInformerFactory) *ControllerBuilder {
+	cspcInformer := GetVersionedCSPCInterface(InformerFactory).CStorPoolClusters()
+	cspiInformer := GetStoredCSPIVersionInterface(InformerFactory).CStorPoolInstances()
+	//Set up an event handler for when CSPC resources change
 	cspcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    cb.Controller.addCSPC,
 		UpdateFunc: cb.Controller.updateCSPC,
 		// This will enter the sync loop and no-op, because the cspc has been deleted from the store.
 		DeleteFunc: cb.Controller.deleteCSPC,
 	})
+
+	// Set up an event handler for when CSPI resources change
+	cspiInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    cb.Controller.addCSPI,
+		UpdateFunc: cb.Controller.updateCSPI,
+		// This will enter the sync loop and no-op, because the cspc has been deleted from the store.
+		DeleteFunc: cb.Controller.deleteCSPI,
+	})
+
 	return cb
+}
+
+func (cb *ControllerBuilder)withDefaults()  {
+	cb.Controller.syncHandler=cb.Controller.syncCSPC
+	cb.Controller.enqueueCSPC=cb.Controller.enqueue
 }
 
 // Build returns a controller instance.
 func (cb *ControllerBuilder) Build() (*Controller, error) {
+	cb.withDefaults()
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
@@ -151,13 +192,13 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 
 // addSpc is the add event handler for cspc
 func (c *Controller) addCSPC(obj interface{}) {
-	cspc, ok := obj.(*apis.CStorPoolCluster)
+	cspc, ok := obj.(*cstor.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", obj))
 		return
 	}
-	if cspc.Annotations[string(types.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileKey))
+	if cspc.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
@@ -167,13 +208,13 @@ func (c *Controller) addCSPC(obj interface{}) {
 
 // updateSpc is the update event handler for cspc.
 func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
-	cspc, ok := newCSPC.(*apis.CStorPoolCluster)
+	cspc, ok := newCSPC.(*cstor.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newCSPC))
 		return
 	}
-	if cspc.Annotations[string(types.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileKey))
+	if cspc.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
@@ -182,21 +223,21 @@ func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
 
 // deleteSpc is the delete event handler for cspc.
 func (c *Controller) deleteCSPC(obj interface{}) {
-	cspc, ok := obj.(*apis.CStorPoolCluster)
+	cspc, ok := obj.(*cstor.CStorPoolCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		cspc, ok = tombstone.Obj.(*apis.CStorPoolCluster)
+		cspc, ok = tombstone.Obj.(*cstor.CStorPoolCluster)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorpoolcluster %#v", obj))
 			return
 		}
 	}
-	if cspc.Annotations[string(types.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileKey))
+	if cspc.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
@@ -204,6 +245,78 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 	c.enqueueCSPC(cspc)
 }
 
+// addSpc is the add event handler for cspc
+func (c *Controller) addCSPI(obj interface{}) {
+	cspi, ok := obj.(*cstor.CStorPoolInstance)
+	if !ok {
+		runtime.HandleError(fmt.Errorf("Couldn't get cspi object %#v", obj))
+		return
+	}
+	if cspi.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
+		c.recorder.Event(cspi, corev1.EventTypeWarning, "Create", message)
+		return
+	}
+	klog.V(4).Infof("Queuing CSPI %s for add event", cspi.Name)
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
+}
+
+// updateSpc is the update event handler for cspc.
+func (c *Controller) updateCSPI(oldCSPI, newCSPI interface{}) {
+	cspi, ok := newCSPI.(*cstor.CStorPoolInstance)
+	if !ok {
+		runtime.HandleError(fmt.Errorf("Couldn't get cspi object %#v", newCSPI))
+		return
+	}
+	if cspi.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
+		c.recorder.Event(cspi, corev1.EventTypeWarning, "Update", message)
+		return
+	}
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
+}
+
+// deleteSpc is the delete event handler for cspc.
+func (c *Controller) deleteCSPI(obj interface{}) {
+	cspi, ok := obj.(*cstor.CStorPoolInstance)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			runtime.HandleError(fmt.Errorf("Couldn't get cspi object from tombstone %#v", obj))
+			return
+		}
+		cspi, ok = tombstone.Obj.(*cstor.CStorPoolInstance)
+		if !ok {
+			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorpoolinstance %#v", obj))
+			return
+		}
+	}
+	if cspi.Annotations[string(types.OpenEBSDisableReconcileLabelKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(types.OpenEBSDisableReconcileLabelKey))
+		c.recorder.Event(cspi, corev1.EventTypeWarning, "Delete", message)
+		return
+	}
+	klog.V(4).Infof("Deleting cstorpoolinstance %s", cspi.Name)
+	//c.enqueueCSPC(GetCSPCForCSPI(cspi))
+}
+
 func GetVersionedCSPCInterface(cspcInformerFactory informers.SharedInformerFactory) v1interface.Interface{
 	return cspcInformerFactory.Cstor().V1()
+}
+
+func GetStoredCSPIVersionInterface(cspiInformerFactory informers.SharedInformerFactory) v1interface.Interface{
+	return cspiInformerFactory.Cstor().V1()
+}
+
+// ToDO: Fix the function.
+func GetCSPCForCSPI(cspc *cstor.CStorPoolInstance)*cstor.CStorPoolCluster  {
+	return nil
+}
+
+func (c *Controller)GetStoredCStorVersionClient() cstorstoredversion.CstorV1Interface {
+	return c.clientset.CstorV1()
+}
+
+func (c *Controller)GetStoredOpenebsVersionClient() openebsstoredversion.OpenebsV1alpha1Interface {
+	return c.clientset.OpenebsV1alpha1()
 }

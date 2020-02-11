@@ -16,7 +16,7 @@ limitations under the License.
 
 // +groupName=cstor.openebs.io
 
-// Package v1 is the v1alpha1 version of the API.
+// Package cstor is cstor  API package.
 package cstor
 
 const GroupName = "cstor.openebs.io"

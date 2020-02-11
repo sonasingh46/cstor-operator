@@ -25,6 +25,7 @@ import (
 
 const (
 	apiVersion = "v1"
+
 )
 
 // SchemeGroupVersion is group version used to register these objects
@@ -38,6 +39,7 @@ func Resource(resource string) schema.GroupResource {
 var (
 	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
 	SchemeBuilder runtime.SchemeBuilder
+
 
 	localSchemeBuilder = &SchemeBuilder
 	// AddToScheme is a global function that registers this API group & version to a scheme

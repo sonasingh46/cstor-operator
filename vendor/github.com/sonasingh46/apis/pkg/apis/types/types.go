@@ -17,6 +17,36 @@ limitations under the License.
 package types
 
 const (
-	// OpenEBSDisableReconcileKey is the label key decides to reconcile or not
-	OpenEBSDisableReconcileKey = "reconcile.openebs.io/disable"
+	// OpenEBSDisableReconcileLabelKey is the label key decides to reconcile or not
+	OpenEBSDisableReconcileLabelKey = "reconcile.openebs.io/disable"
+
+	// HostNameLabelKey is label key present on kubernetes node object.
+	HostNameLabelKey = "kubernetes.io/hostname"
+
+	// CStorPoolClusterLabelKey is the CStorPoolcluster label key.
+	CStorPoolClusterLabelKey = "openebs.io/cstor-pool-cluster"
+
+	// CStorPoolInstanceLabelKey is the CStorPoolInstance label
+	CStorPoolInstanceLabelKey = "openebs.io/cstor-pool-instance"
+
+	// OpenEBSVersionLabelKey is the openebs version key.
+	OpenEBSVersionLabelKey  = "openebs.io/version"
+
+	// CASTypeLabelKey is the label key to fetch storage engine for the volume
+	CASTypeLabelKey = "openebs.io/cas-type"
+)
+
+const  (
+	// CSPCFinalizer represents finalizer value used by cspc
+	CSPCFinalizer = "cstorpoolcluster.openebs.io/finalizer"
+
+	// PoolProtectionFinalizer is used to make sure cspi and it's bdcs
+	// are not deleted before destroying the zpool
+	PoolProtectionFinalizer = "openebs.io/pool-protection"
+
+)
+
+const  (
+	// CasTypeCStor is the key for cas type cStor
+	CasTypeCStor = "cstor"
 )
