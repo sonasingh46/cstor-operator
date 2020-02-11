@@ -37,8 +37,6 @@ const (
 
 func (c *Controller) sync(cspc *cstor.CStorPoolCluster, cspiList *cstor.CStorPoolInstanceList) error {
 
-	fmt.Println("[DEBUG]: DO NOT FORGET TO REBUILD IF YOUR ARE DEBUUGGING------------------------------->")
-
 	// If CSPC is deleted -- delete all the associated CSPI resources.
 	// Cleaning up CSPI resources in case of removing poolSpec from CSPC
 	// or manual CSPI deletion
@@ -78,6 +76,7 @@ func (c *Controller) sync(cspc *cstor.CStorPoolCluster, cspiList *cstor.CStorPoo
 		}
 	}
 
+
 	// Create pools if required.
 	if len(cspiList.Items) < len(cspc.Spec.Pools) {
 		return c.ScaleUp(cspc, len(cspc.Spec.Pools)-len(cspiList.Items))
@@ -88,7 +87,18 @@ func (c *Controller) sync(cspc *cstor.CStorPoolCluster, cspiList *cstor.CStorPoo
 		return c.ScaleDown(cspc)
 	}
 
-	// Create pool deployment for the CSPIs
+	cspisWithoutDeployment, err := c.GetCSPIWithoutDeployment(cspc)
+	if err != nil {
+		// Note: CSP for which pool deployment does not exists are known as orphaned.
+		message := fmt.Sprintf("Error in getting orphaned CSP :{%s}", err.Error())
+		c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Create", message)
+		klog.Errorf("Error in getting orphaned CSP for CSPC {%s}:{%s}", cspc.Name, err.Error())
+		return nil
+	}
+
+	if len(cspisWithoutDeployment) > 0 {
+		c.createDeployForCSPList(cspc,cspisWithoutDeployment)
+	}
 
 	// Handle Pool operations
 	return nil
@@ -222,4 +232,25 @@ func (c *Controller) EstimateCSPCVersion(cspc *cstor.CStorPoolCluster) (string, 
 		return version.Current(), nil
 	}
 	return cspiList.Items[0].Labels[string(OpenEBSVersionKey)], nil
+}
+
+// GetCSPIWithoutDeployment gets the CSPIs for whom the pool deployment does not exists.
+func (c *Controller) GetCSPIWithoutDeployment(cspc *cstor.CStorPoolCluster) ([]cstor.CStorPoolInstance, error) {
+	var cspiList []cstor.CStorPoolInstance
+	cspiGotList, err := c.GetStoredCStorVersionClient().CStorPoolInstances(cspc.Namespace).List(metav1.ListOptions{LabelSelector: string(types.CStorPoolClusterLabelKey) + "=" + cspc.Name})
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not list cspi for cspc {%s}", cspc.Name)
+	}
+	for _, cspObj := range cspiGotList.Items {
+		cspObj := cspObj
+		_, err := c.kubeclientset.AppsV1().Deployments(cspc.Namespace).Get(cspObj.Name,metav1.GetOptions{})
+		if k8serror.IsNotFound(err) {
+			cspiList = append(cspiList, cspObj)
+			continue
+		}
+		if err != nil {
+			klog.Errorf("Could not get pool deployment for cspi {%s}", cspObj.Name)
+		}
+	}
+	return cspiList, nil
 }

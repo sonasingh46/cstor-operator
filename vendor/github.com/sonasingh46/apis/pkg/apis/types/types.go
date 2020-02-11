@@ -26,6 +26,9 @@ const (
 	// CStorPoolClusterLabelKey is the CStorPoolcluster label key.
 	CStorPoolClusterLabelKey = "openebs.io/cstor-pool-cluster"
 
+	// CStorPoolInstanceLabelKey is the CStorPoolInstance label
+	CStorPoolInstanceLabelKey = "openebs.io/cstor-pool-instance"
+
 	// OpenEBSVersionLabelKey is the openebs version key.
 	OpenEBSVersionLabelKey  = "openebs.io/version"
 

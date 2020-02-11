@@ -62,15 +62,48 @@ func (c *Controller) CreateCSPI(cspc *cstor.CStorPoolCluster) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.clientset.CstorV1().CStorPoolInstances(cspc.Namespace).Create(cspi)
+	_, err = c.GetStoredCStorVersionClient().CStorPoolInstances(cspc.Namespace).Create(cspi)
+
 	if err != nil {
+		return err
+	}
+	err=c.CreateCSPIDeployment(cspc,cspi)
+	if err!=nil{
 		return err
 	}
 	return nil
 }
 
+func (c *Controller) createDeployForCSPList(cspc *cstor.CStorPoolCluster, cspList []cstor.CStorPoolInstance) {
+	for _, cspObj := range cspList {
+		cspObj := cspObj
+		err := c.CreateCSPIDeployment(cspc,&cspObj)
+		if err != nil {
+			message := fmt.Sprintf("Failed to create pool deployment for CSP %s: %s", cspObj.Name, err.Error())
+			c.recorder.Event(cspc, corev1.EventTypeWarning, "PoolDeploymentCreate", message)
+			runtime.HandleError(errors.Errorf("Failed to create pool deployment for CSP %s: %s", cspObj.Name, err.Error()))
+		}
+	}
+}
 // CreateStoragePool creates the required resource to provision a cStor pool
-func (c *Controller) CreateCSPIDeployment() error {
+func (c *Controller) CreateCSPIDeployment(cspc *cstor.CStorPoolCluster,cspi *cstor.CStorPoolInstance) error {
+	ac, err := algorithm.NewBuilder().
+		WithCSPC(cspc).
+		WithNameSpace(cspc.Namespace).
+		WithKubeClient(c.kubeclientset).
+		WithOpenEBSClient(c.clientset).
+		Build()
+	if err != nil {
+		return err
+	}
+	deploy,err:=ac.GetPoolDeploySpec(cspi)
+	if err != nil {
+		return err
+	}
+	_,err=c.kubeclientset.AppsV1().Deployments(cspi.Namespace).Create(deploy)
+	if err!=nil{
+		return err
+	}
 	return nil
 }
 

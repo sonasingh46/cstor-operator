@@ -11,7 +11,7 @@ require (
 	github.com/openebs/maya v0.0.0-20200211084127-dd6152021192
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1 // indirect
-	github.com/sonasingh46/apis v0.0.0-20200211102121-428de135e219
+	github.com/sonasingh46/apis v0.0.0-20200211163629-1dbd31e1dd18
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
